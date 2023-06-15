@@ -1,0 +1,136 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+
+
+"""
+import numpy as np
+import cv2
+import os
+from PIL import ImageGrab
+from screeninfo import get_monitors
+from pynput.mouse import Controller
+# from pynput import mouse # for mouse events
+
+
+def getImage(x, y, h, w):
+    if x < w:
+        x = w
+    if x > max_w - w:
+        x = max_w - w
+    if y < h:
+        y = h
+    if y > max_h - h:
+        y = max_h - h
+    bbox = (x - w, y - h, x + w, y + h)
+    img = ImageGrab.grab(bbox)
+    pil_image = img.convert('RGB') 
+    open_cv_image = np.array(pil_image) 
+    open_cv_image = open_cv_image[:, :, ::-1].copy() 
+    return(open_cv_image)
+
+
+def get_display_info():
+    display_info = []
+    displays = []
+    ms = get_monitors()
+    for m in ms:
+        display = (str(m)[8:-1]).split(', ')[:4]
+        for i in display:
+            display_info.append(int(i.split('=')[-1]))
+        displays.append(display_info)
+        display_info = []
+        displays.sort()
+    dis = displays[-1]
+    return(dis[0]+dis[2], dis[3])
+
+"""
+def on_move(x, y):
+    global mouse_x 
+    mouse_x = x
+    global mouse_y
+    mouse_y = y
+
+def on_click(x, y, button, pressed):
+    pass
+
+def on_scroll(x, y, dx, dy):
+    pass  
+
+listener = mouse.Listener(
+    on_move=on_move,
+    on_click=on_click,
+    on_scroll=on_scroll)
+listener.start()
+
+'''
+Two clicks could be used to define a recatngle.
+Scroll should change size
+Click and move to drag
+'''
+"""
+
+if __name__ == "__main__":
+    Mouse = Controller()  # Mouse.move(+, -) or Mouse.position(x,y)
+    max_w, max_h = get_display_info()
+    x, y = Mouse.position
+    lock_pos = False
+    set_dim = [True] * 2
+    print(set_dim)
+    w_asc = 119  # asc w
+    h_asc = 104  # asc h
+    l_asc = 108  # asc l
+    p_asc = 112  # asc p
+    f_asc = 102  # asc f
+    imName = 'View'
+    img = getImage(x, y, 10, 10)
+    cv2.imshow(f'{imName}', img)
+    size = np.array([50, 50])
+    fullScreen = False
+    print('w - toggle width')
+    print('h - toggle height')
+    print('l - toggle lock')
+    print('p - take a picture')
+    print('esc - quit')
+    
+    imgPath = (f"{os.getcwd()}/img/")
+    if not os.path.exists(imgPath):
+        os.makedirs(imgPath)
+    QUIT = False
+    ctr = 0
+    while True:
+        key = cv2.waitKey(150)
+        """if (key > 0):
+            print(f'key = {key}')"""
+        if (key == 27):
+            break
+        if cv2.getWindowProperty(imName,cv2.WND_PROP_VISIBLE) < 1:        
+            break      
+        elif (key == 45):  # minus sign
+            size -= set_dim
+        elif (key == p_asc):
+            filename = f"{imgPath}({x},{y},{size[0]},{size[1]})-{ctr}.png"
+            ctr += 1
+            img = getImage(x, y, size[0], size[1])
+            cv2.imwrite(filename, img)
+        elif (key == 43):  # plus sign
+            size += set_dim
+        elif (key == f_asc):
+            fullScreen = not fullScreen
+        elif (key == l_asc):
+            lock_pos = not lock_pos
+            print(f'Lock = {lock_pos}')
+        elif (key == w_asc):
+            set_dim[1] = not set_dim[1]
+            print(f'width {set_dim[1]*1}, height {set_dim[0]*1}')
+        elif (key == h_asc):
+            set_dim[0] = not set_dim[0]
+            print(f'width {set_dim[1]*1}, height {set_dim[0]*1}')
+        if not lock_pos:
+            x, y = Mouse.position
+        if x > max_w:
+            max_w = x
+        if not QUIT: 
+            img = getImage(x, y, size[0], size[1])
+            cv2.imshow(f'{imName}', img)
+    cv2.destroyAllWindows()
